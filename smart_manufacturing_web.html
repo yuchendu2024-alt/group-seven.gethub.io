@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能控制面板</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Tailwind CSS配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e40af',
+                        secondary: '#3b82f6',
+                        accent: '#22c55e',
+                        neutral: '#f3f4f6',
+                        'neutral-dark': '#1f2937',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto { content-visibility: auto; }
+            .border-title {
+                border-bottom: 2px solid #1e40af;
+            }
+            .btn-primary {
+                @apply bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition-all duration-200 shadow-md hover:shadow-lg;
+            }
+            .btn-secondary {
+                @apply bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-100 transition-all duration-200;
+            }
+            .card {
+                @apply border border-gray-200 rounded-lg bg-white shadow-sm;
+            }
+            .card-header {
+                @apply px-4 py-2 bg-gray-50 border-b border-gray-200 rounded-t-lg text-sm font-medium text-gray-700;
+            }
+            .card-body {
+                @apply p-4;
+            }
+            .combo-box {
+                @apply block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md;
+            }
+            .progress-bar-container {
+                @apply h-2 bg-gray-200 rounded-full overflow-hidden;
+            }
+            .progress-bar {
+                @apply h-full bg-blue-600 rounded-full transition-all duration-300;
+            }
+            .text-box {
+                @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-4">
+        <!-- 顶部标题 -->
+        <div class="mb-4">
+            <h1 class="text-xl font-bold text-gray-800 border-title pb-2">智能控制面板</h1>
+        </div>
+
+        <!-- 主要内容区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- 左侧：视频显示区域 -->
+            <div class="lg:col-span-2 space-y-4">
+                <!-- 摄像头显示 -->
+                <div class="card">
+                    <div class="card-header">摄像头显示</div>
+                    <div class="card-body">
+                        <div class="aspect-video bg-black rounded-lg flex items-center justify-center overflow-hidden relative">
+                            <img id="videoStream" src="" alt="摄像头画面" class="w-full h-full object-contain">
+                            <div id="videoOverlay" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <!-- 用于显示检测结果的叠加层 -->
+                            </div>
+                        </div>
+                        <!-- 进度条 -->
+                        <div class="mt-2 progress-bar-container">
+                            <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 系统控制区域 -->
+                <div class="card">
+                    <div class="card-header">系统控制</div>
+                    <div class="card-body">
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            <button id="openCamera" class="btn-primary">
+                                <i class="fa fa-video-camera mr-1"></i> 打开摄像头
+                            </button>
+                            <button id="closeCamera" class="btn-secondary" disabled>
+                                <i class="fa fa-times-circle mr-1"></i> 关闭摄像头
+                            </button>
+                            <button id="loadImage" class="btn-secondary">
+                                <i class="fa fa-upload mr-1"></i> 插入图片
+                            </button>
+                            <button id="detectImage" class="btn-secondary" disabled>
+                                <i class="fa fa-search mr-1"></i> 检测图片
+                            </button>
+                            <button id="startDetection" class="btn-primary">
+                                <i class="fa fa-play-circle mr-1"></i> 开始识别
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 控制操作区域 -->
+                <div class="card">
+                    <div class="card-header">控制操作</div>
+                    <div class="card-body">
+                        <div class="grid grid-cols-2 gap-3">
+                            <button id="startMotor" class="btn-primary py-3">
+                                <i class="fa fa-cog mr-1"></i> 启动电机
+                            </button>
+                            <button id="resetMotor" class="btn-secondary py-3">
+                                <i class="fa fa-refresh mr-1"></i> 电机复位
+                            </button>
+                            <button id="smartOperation" class="btn-primary py-3">
+                                <i class="fa fa-lightbulb-o mr-1"></i> 智能操作
+                            </button>
+                            <button id="stampingOperation" class="btn-secondary py-3">
+                                <i class="fa fa-compress mr-1"></i> 冲压操作
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：识别结果和配置区域 -->
+            <div class="space-y-4">
+                <!-- 识别结果 -->
+                <div class="card">
+                    <div class="card-header">识别结果</div>
+                    <div class="card-body">
+                        <div class="space-y-2">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">模式:</label>
+                                <p id="detectionMode" class="text-gray-900 font-medium">颜色检测</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">颜色:</label>
+                                <p id="detectedColor" class="text-gray-900 font-medium">红色</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">角度:</label>
+                                <p id="detectedAngle" class="text-gray-900 font-medium">97°</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 串口设置 -->
+                <div class="card">
+                    <div class="card-header">串口设置</div>
+                    <div class="card-body">
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">选择端口:</label>
+                                <select id="serialPortSelect" class="combo-box">
+                                    <option value="COM1">COM1</option>
+                                    <option value="COM2">COM2</option>
+                                    <option value="COM3" selected>COM3</option>
+                                    <option value="COM4">COM4</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button id="openSerialPort" class="btn-primary">
+                                    <i class="fa fa-plug mr-1"></i> 打开端口
+                                </button>
+                                <button id="closeSerialPort" class="btn-secondary" disabled>
+                                    <i class="fa fa-unplug mr-1"></i> 关闭端口
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 系统日志 -->
+                <div class="card">
+                    <div class="card-header">系统日志</div>
+                    <div class="card-body p-0">
+                        <div class="border-t border-gray-200 h-40 overflow-y-auto p-2 bg-gray-50">
+                            <pre id="systemLog" class="text-sm text-gray-800 whitespace-pre-wrap">[22:59:58] 开始打开摄像头。
+[22:59:58] 摄像头已就绪。
+[22:59:58] 图像已转换为灰度。
+[22:59:58] 摄像头已关闭。</pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 平台信息 -->
+                <div class="card">
+                    <div class="card-header">平台信息</div>
+                    <div class="card-body p-0">
+                        <div class="border-t border-gray-200 overflow-hidden">
+                            <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48c3R5bGU+LmNvbG9yIHR5cGU9InNhdHVyYXRlIiByZWZYPSIwIiByZWZZPSIwIiByZWZ1PSIwIiByZWZ0PSIwIiByZWZ4PSIwIiByZWZ5PSIwIiByZWZ1PSIwIiByZWZ0PSIwIi8+LmNoYXJ0IHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCIgZmlsbD0iIzA4MUUwMCIgY2xpcC1ydWxlPSJldmVub2RkIi8+Lm1vZGVsIHdpZHRoPSIzMCIgaGVpZ2h0PSIzMCIgZmlsbD0iIzAwQkZGRiIvPjwvc3R5bGU+PHJlY3QgeD0iNjAiIHk9IjYwIiB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiM4QjkxRkYiIG9wYWNpdHk9IjAuMyIvPjxjaXJjbGUgc3Ryb2tlPSIjQkQ0NjkyIiBzdHJva2Utd2lkdGg9IjIiIGN4PSIyMCIgY3k9IjIwIiByPSIyIi8+PGNpcmNsZSBzdHJva2U9IiM2OTUwQUYiIHN0cm9rZS13aWR0aD0iMiIgY3g9IjE4MCIgY3k9IjE4MCIgcj0iMiIvPjxwYXRoIGQ9Ik0xODAgMjBjLTkgMCAxNiA3IDE2IDE2czctMTYgMTYtMTYtNyAxNi0xNiAxNnoiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4zIi8+PHJlY3QgeD0iMTAwIiB5PSIzMCIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxNDAiIGZpbGw9InVybCgjY29sb3IpIi8+PGNpcmNsZSBzdHJva2U9IiM4MEE4OEEiIHN0cm9rZS13aWR0aD0iMiIgY3g9IjE1MCIgY3k9IjkwIiByPSI1Ii8+PGNpcmNsZSBzdHJva2U9IiM4MEE4OEEiIHN0cm9rZS13aWR0aD0iMiIgY3g9IjUwIiBjeT0iMTMwIiByPSI1Ii8+PGNpcmNsZSBzdHJva2U9IiM4MEE4OEEiIHN0cm9rZS13aWR0aD0iMiIgY3g9IjUwIiBjeT0iNzAiIHI9IjUiLz48cGF0aCBkPSJNNTAgNjBjMCAxMC01IDE1LTE1IDE1UzIwIDY1IDIwIDcwczUgMTUgMTUgMTUgMTUtNSAxNS0xNS01LTE1LTE1LTE1eiIvPjxjaXJjbGUgZmlsbD0iIzAwRUZGRiIgY3g9IjE0MCIgY3k9IjEwMCIgcj0iMTUiLz48dGV4dCB4PSIxMDAiIHk9IjEwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9ImludGVybmFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjRkZGRkZGIj5Db21tYW5kPC90ZXh0Pjwvc3ZnPg==" alt="平台模型" class="w-full h-auto">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部状态栏 -->
+        <div class="mt-4 bg-gray-200 p-2 rounded-lg text-sm text-gray-700">
+            <div class="flex justify-between">
+                <div id="statusText">系统就绪</div>
+                <div id="currentTime"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript 功能实现
+        document.addEventListener('DOMContentLoaded', function() {
+            // 更新当前时间
+            function updateCurrentTime() {
+                const now = new Date();
+                const timeString = now.getFullYear() + '-' + 
+                                  String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                                  String(now.getDate()).padStart(2, '0') + ' ' + 
+                                  String(now.getHours()).padStart(2, '0') + ':' + 
+                                  String(now.getMinutes()).padStart(2, '0') + ':' + 
+                                  String(now.getSeconds()).padStart(2, '0');
+                document.getElementById('currentTime').textContent = timeString;
+            }
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000);
+
+            // 全局变量
+            let videoStream = null;
+            let detectionInterval = null;
+            let currentColor = '红色';
+            let currentAngle = 97;
+            let errorValue = 0;
+            let detectionState = {
+                initialized: false,
+                processing: false,
+                lastDetectionTime: 0,
+                detectionCount: 0
+            };
+            
+            // 初始化日志
+            addLog('系统已启动');
+            
+            // 模拟检测结果更新
+            function updateDetectionResult(color, angle, error = 0) {
+                currentColor = color;
+                currentAngle = angle;
+                errorValue = error;
+                
+                // 更新识别结果区域
+                document.getElementById('detectedColor').textContent = color;
+                document.getElementById('detectedAngle').textContent = angle + '°';
+                document.getElementById('errorValue').textContent = error + 'mm';
+                
+                // 更新进度条
+                const progressBar = document.getElementById('progressBar');
+                let width = 0;
+                progressBar.style.width = '0%';
+                
+                const interval = setInterval(function() {
+                    if (width >= 100) {
+                        clearInterval(interval);
+                    } else {
+                        width += 10;
+                        progressBar.style.width = width + '%';
+                    }
+                }, 200);
+                
+                // 记录颜色检测日志
+                addLog(`颜色检测结果: ${color}`);
+                
+                // 更新检测状态
+                detectionState.lastDetectionTime = Date.now();
+                detectionState.detectionCount++;
+            }
+
+            // 添加日志
+            function addLog(message) {
+                const now = new Date();
+                const timeString = '[' + 
+                                  String(now.getHours()).padStart(2, '0') + ':' + 
+                                  String(now.getMinutes()).padStart(2, '0') + ':' + 
+                                  String(now.getSeconds()).padStart(2, '0') + '] ';
+                const logElement = document.getElementById('systemLog');
+                logElement.textContent += timeString + message + '\n';
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+
+            // 模拟颜色检测算法
+            function simulateColorDetection() {
+                // 基于时间和随机因素模拟颜色检测
+                const time = Date.now();
+                const randomFactor = Math.random();
+                
+                // 模拟不同的颜色检测结果
+                const colorProbability = Math.sin(time / 5000) * 0.5 + 0.5; // 0 到 1 之间波动
+                
+                let detectedColor = '红色';
+                if (randomFactor < 0.3) {
+                    detectedColor = '蓝色';
+                } else if (randomFactor < 0.6) {
+                    detectedColor = '红色';
+                }
+                
+                // 模拟错误值计算
+                const errorDeviation = Math.random() * 2; // 0-2mm的随机误差
+                const error = parseFloat(errorDeviation.toFixed(1));
+                
+                return { color: detectedColor, error: error };
+            }
+            
+            // 模拟角度检测算法
+            function simulateAngleDetection() {
+                // 基于时间和随机因素模拟角度检测
+                const time = Date.now();
+                
+                // 创建一个在90度附近波动的角度值
+                const baseAngle = 90;
+                const angleVariation = Math.sin(time / 3000) * 10; // ±10度的波动
+                const randomOffset = (Math.random() - 0.5) * 5; // ±2.5度的随机偏移
+                
+                let angle = baseAngle + angleVariation + randomOffset;
+                angle = Math.round(angle); // 四舍五入到整数
+                
+                // 确保角度在合理范围内
+                if (angle < 45) angle = 45;
+                if (angle > 135) angle = 135;
+                
+                return angle;
+            }
+            
+            // 执行完整的模拟检测
+            function performSimulationDetection() {
+                if (detectionState.processing) return; // 避免并发检测
+                
+                detectionState.processing = true;
+                
+                // 模拟处理时间
+                setTimeout(() => {
+                    // 执行颜色和角度检测
+                    const colorResult = simulateColorDetection();
+                    const angle = simulateAngleDetection();
+                    
+                    // 更新结果
+                    updateDetectionResult(colorResult.color, angle, colorResult.error);
+                    createDetectionOverlay();
+                    
+                    detectionState.processing = false;
+                }, 500);
+            }
+
+            // 创建检测覆盖层
+            function createDetectionOverlay() {
+                const overlay = document.getElementById('videoOverlay');
+                overlay.innerHTML = ''; // 清空现有内容
+                
+                // 创建角度显示
+                const angleDiv = document.createElement('div');
+                angleDiv.className = 'absolute top-4 left-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm font-bold';
+                angleDiv.textContent = `angle:${currentAngle}`;
+                angleDiv.style.color = currentColor === '红色' ? '#FF0000' : '#0000FF';
+                overlay.appendChild(angleDiv);
+                
+                // 创建错误值显示
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'absolute top-4 left-24 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm font-bold';
+                errorDiv.textContent = `error:${errorValue}mm`;
+                errorDiv.style.color = '#FF0000';
+                overlay.appendChild(errorDiv);
+                
+                // 创建颜色显示
+                const colorDiv = document.createElement('div');
+                colorDiv.className = 'absolute bottom-4 left-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm font-bold';
+                colorDiv.textContent = `颜色:${currentColor}`;
+                colorDiv.style.color = currentColor === '红色' ? '#FF0000' : '#0000FF';
+                overlay.appendChild(colorDiv);
+                
+                // 创建目标框
+                const targetBox = document.createElement('div');
+                targetBox.className = 'absolute border-2 rounded';
+                targetBox.style.left = '30%';
+                targetBox.style.top = '30%';
+                targetBox.style.width = '40%';
+                targetBox.style.height = '40%';
+                targetBox.style.borderColor = currentColor === '红色' ? '#FF0000' : '#0000FF';
+                overlay.appendChild(targetBox);
+                
+                // 创建检测线条
+                const canvas = document.createElement('canvas');
+                canvas.className = 'absolute top-0 left-0 w-full h-full pointer-events-none';
+                overlay.appendChild(canvas);
+                
+                const ctx = canvas.getContext('2d');
+                canvas.width = overlay.offsetWidth;
+                canvas.height = overlay.offsetHeight;
+                
+                // 绘制检测线条
+                ctx.strokeStyle = '#22c55e'; // 绿色线条
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                // 从顶部角度显示到目标框的线条
+                const startX = 50;
+                const startY = 30;
+                const endX = canvas.width * 0.5;
+                const endY = canvas.height * 0.5;
+                
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+                
+                // 绘制额外的检测参考线
+                drawReferenceLines(ctx, canvas.width, canvas.height);
+            }
+            
+            // 绘制参考线
+            function drawReferenceLines(ctx, width, height) {
+                // 绘制中心点标记
+                ctx.fillStyle = '#22c55e';
+                ctx.beginPath();
+                ctx.arc(width * 0.5, height * 0.5, 3, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // 根据角度绘制方向线
+                ctx.strokeStyle = '#22c55e';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                
+                // 计算角度对应的终点
+                const angleRad = (currentAngle * Math.PI) / 180;
+                const lineLength = Math.min(width, height) * 0.3;
+                const lineEndX = width * 0.5 + Math.cos(angleRad - Math.PI/2) * lineLength;
+                const lineEndY = height * 0.5 + Math.sin(angleRad - Math.PI/2) * lineLength;
+                
+                ctx.moveTo(width * 0.5, height * 0.5);
+                ctx.lineTo(lineEndX, lineEndY);
+                ctx.stroke();
+                
+                // 绘制十字准线
+                ctx.strokeStyle = 'rgba(34, 197, 94, 0.5)';
+                ctx.setLineDash([5, 5]); // 设置虚线
+                
+                // 水平准线
+                ctx.beginPath();
+                ctx.moveTo(width * 0.1, height * 0.5);
+                ctx.lineTo(width * 0.9, height * 0.5);
+                ctx.stroke();
+                
+                // 垂直准线
+                ctx.beginPath();
+                ctx.moveTo(width * 0.5, height * 0.1);
+                ctx.lineTo(width * 0.5, height * 0.9);
+                ctx.stroke();
+                
+                ctx.setLineDash([]); // 重置为实线
+            }
+
+            // 摄像头控制 - 使用真实摄像头
+            document.getElementById('openCamera').addEventListener('click', function() {
+                addLog('开始打开摄像头。');
+                
+                // 检查浏览器是否支持媒体设备API
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ video: true })
+                        .then(function(stream) {
+                            videoStream = stream;
+                            document.getElementById('videoStream').srcObject = stream;
+                            document.getElementById('videoStream').style.display = 'block';
+                            document.getElementById('statusText').textContent = '摄像头已就绪';
+                            document.getElementById('openCamera').disabled = true;
+                            document.getElementById('closeCamera').disabled = false;
+                            document.getElementById('detectImage').disabled = false;
+                            addLog('摄像头已就绪。');
+                            addLog('图像已转换为灰度。');
+                            
+                            // 开始实时检测
+                            startRealTimeDetection();
+                        })
+                        .catch(function(error) {
+                            // 摄像头访问失败，使用模拟图像
+                            addLog('无法访问摄像头，使用模拟图像。');
+                            document.getElementById('videoStream').src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNNTAgMTBjLTIyIDAgLTQwIDE4LTQwIDQwczE4IDQwIDQwIDQwIDQwLTE4IDQwLTQwLTE4LTQwLTQwLTQweiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNNTAgMzBjLTEwIDAtMTggOC0xOCAxOHM4IDE4IDE4IDE4IDE4LTggMTgtMTgtOC0xOC0xOC0xOHoiIGZpbGw9IiMwQjZGQUYiIGZpbGwtb3BhY2l0eT0iMC4yIi8+PGNpcmNsZSBjeD0iNTAlIiBjeT0iNTAiIHI9IjIwIiBzdHJva2U9IiNFRjIwMjAiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjUwJSIgY3k9IjUwIiByPSIxMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiLz48dGV4dCB4PSI1MCUiIHk9IjQyIiBmb250LXNpemU9IjY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkZGIj5hbmdsZToxMDAlPC90ZXh0Pjx0ZXh0IHg9IjUwJSIgeT0iNTQiIGZvbnQtc2l6ZT0iNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRkYiPueDheW0iLz48L3N2Zz4=';
+                            document.getElementById('statusText').textContent = '摄像头已就绪（模拟）';
+                            document.getElementById('openCamera').disabled = true;
+                            document.getElementById('closeCamera').disabled = false;
+                            document.getElementById('detectImage').disabled = false;
+                            addLog('摄像头已就绪（使用模拟图像）。');
+                            
+                            // 开始模拟检测
+                            startRealTimeDetection();
+                        });
+                } else {
+                    // 浏览器不支持，使用模拟图像
+                    addLog('浏览器不支持摄像头，使用模拟图像。');
+                    document.getElementById('videoStream').src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cGF0aCBkPSJNNTAgMTBjLTIyIDAgLTQwIDE4LTQwIDQwczE4IDQwIDQwIDQwIDQwLTE4IDQwLTQwLTE4LTQwLTQwLTQweiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNNTAgMzBjLTEwIDAtMTggOC0xOCAxOHM4IDE4IDE4IDE4IDE4LTggMTgtMTgtOC0xOC0xOC0xOHoiIGZpbGw9IiMwQjZGQUYiIGZpbGwtb3BhY2l0eT0iMC4yIi8+PGNpcmNsZSBjeD0iNTAlIiBjeT0iNTAiIHI9IjIwIiBzdHJva2U9IiNFRjIwMjAiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjUwJSIgY3k9IjUwIiByPSIxMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEiIGZpbGw9Im5vbmUiLz48dGV4dCB4PSI1MCUiIHk9IjQyIiBmb250LXNpemU9IjY0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjRkZGIj5hbmdsZToxMDAlPC90ZXh0Pjx0ZXh0IHg9IjUwJSIgeT0iNTQiIGZvbnQtc2l6ZT0iNjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNGRkYiPueDheW0iLz48L3N2Zz4=';
+                    document.getElementById('statusText').textContent = '摄像头已就绪（模拟）';
+                    document.getElementById('openCamera').disabled = true;
+                    document.getElementById('closeCamera').disabled = false;
+                    document.getElementById('detectImage').disabled = false;
+                    addLog('摄像头已就绪（使用模拟图像）。');
+                    
+                    // 开始模拟检测
+                    startRealTimeDetection();
+                }
+            });
+
+            // 停止摄像头
+            document.getElementById('closeCamera').addEventListener('click', function() {
+                addLog('开始关闭摄像头。');
+                
+                // 停止实时检测
+                if (detectionInterval) {
+                    clearInterval(detectionInterval);
+                    detectionInterval = null;
+                }
+                
+                // 停止视频流
+                if (videoStream) {
+                    videoStream.getTracks().forEach(track => track.stop());
+                    videoStream = null;
+                }
+                
+                document.getElementById('videoStream').src = '';
+                document.getElementById('videoStream').srcObject = null;
+                document.getElementById('videoOverlay').innerHTML = '';
+                document.getElementById('statusText').textContent = '系统就绪';
+                document.getElementById('openCamera').disabled = false;
+                document.getElementById('closeCamera').disabled = true;
+                document.getElementById('detectImage').disabled = true;
+                addLog('摄像头已关闭。');
+            });
+
+            // 开始实时检测
+            function startRealTimeDetection() {
+                // 清除现有的检测间隔
+                if (detectionInterval) {
+                    clearInterval(detectionInterval);
+                }
+                
+                // 初始化检测状态
+                detectionState.initialized = true;
+                detectionState.detectionCount = 0;
+                
+                addLog('开始实时检测...');
+                
+                // 每1.5秒执行一次完整的模拟检测
+                detectionInterval = setInterval(function() {
+                    performSimulationDetection();
+                }, 1500);
+                
+                // 立即执行一次检测
+                performSimulationDetection();
+            }
+
+            // 开始识别按钮
+            document.getElementById('startDetection').addEventListener('click', function() {
+                addLog('开始识别。');
+                document.getElementById('statusText').textContent = '识别中...';
+                
+                // 执行精确识别，而不是随机选择值
+                performPreciseDetection().then(result => {
+                    updateDetectionResult(result.color, result.angle, result.error);
+                    createDetectionOverlay(); // 更新覆盖层
+                    document.getElementById('statusText').textContent = '识别完成';
+                    addLog('识别完成，检测到' + result.color + '，角度：' + result.angle + '°，误差：' + result.error + 'mm。');
+                    
+                    // 根据误差值提供状态建议
+                    if (result.error < 1.0) {
+                        addLog('误差在允许范围内，可以进行操作。');
+                    } else {
+                        addLog('警告：误差超过阈值，建议重新校准。');
+                    }
+                });
+            });
+            
+            // 执行精确检测的函数
+            function performPreciseDetection() {
+                return new Promise(resolve => {
+                    // 模拟一个更复杂的检测过程，包含多个步骤
+                    let step = 0;
+                    const totalSteps = 3;
+                    
+                    const detectionSteps = [
+                        '预处理图像...',
+                        '提取特征点...',
+                        '计算角度和颜色...'
+                    ];
+                    
+                    const stepInterval = setInterval(() => {
+                        if (step < totalSteps) {
+                            addLog(detectionSteps[step]);
+                            step++;
+                        } else {
+                            clearInterval(stepInterval);
+                            
+                            // 执行实际检测
+                            const colorResult = simulateColorDetection();
+                            const angle = simulateAngleDetection();
+                            
+                            resolve({
+                                color: colorResult.color,
+                                angle: angle,
+                                error: colorResult.error
+                            });
+                        }
+                    }, 600);
+                });
+            }
+
+            // 插入图片功能
+            document.getElementById('loadImage').addEventListener('click', function() {
+                // 创建文件输入元素
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                
+                input.onchange = function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            // 停止摄像头
+                            if (videoStream) {
+                                videoStream.getTracks().forEach(track => track.stop());
+                                videoStream = null;
+                            }
+                            
+                            // 显示图片
+                            document.getElementById('videoStream').src = event.target.result;
+                            document.getElementById('videoStream').style.display = 'block';
+                            document.getElementById('statusText').textContent = '图片已加载';
+                            document.getElementById('detectImage').disabled = false;
+                            addLog('图片已加载。');
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                };
+                
+                input.click();
+            });
+
+            // 检测图片功能
+            document.getElementById('detectImage').addEventListener('click', function() {
+                addLog('开始检测图片。');
+                document.getElementById('statusText').textContent = '图片检测中...';
+                
+                // 执行图片检测
+                performImageDetection().then(result => {
+                    updateDetectionResult(result.color, result.angle, result.error);
+                    createDetectionOverlay(); // 更新覆盖层
+                    document.getElementById('statusText').textContent = '图片检测完成';
+                    addLog('图片检测完成，检测到' + result.color + '，角度：' + result.angle + '°，误差：' + result.error + 'mm。');
+                    
+                    // 保存检测记录
+                    saveDetectionRecord(result);
+                });
+            });
+            
+            // 执行图片检测的函数
+            function performImageDetection() {
+                return new Promise(resolve => {
+                    // 模拟图片检测过程
+                    let progress = 0;
+                    const progressInterval = setInterval(() => {
+                        progress += 10;
+                        
+                        // 更新进度条
+                        document.getElementById('progressBar').style.width = progress + '%';
+                        
+                        if (progress >= 100) {
+                            clearInterval(progressInterval);
+                            
+                            // 执行实际检测算法
+                            const colorResult = simulateColorDetection();
+                            // 图片检测的角度可能与实时检测略有不同
+                            const imageAngle = simulateAngleDetection() + Math.floor(Math.random() * 5) - 2;
+                            
+                            resolve({
+                                color: colorResult.color,
+                                angle: imageAngle,
+                                error: colorResult.error
+                            });
+                        }
+                    }, 100);
+                });
+            }
+            
+            // 保存检测记录
+            function saveDetectionRecord(result) {
+                // 在实际应用中，这里可以将记录保存到服务器或本地存储
+                addLog(`检测记录已保存: ${result.color}, ${result.angle}°, ${result.error}mm`);
+                
+                // 简单的本地存储示例
+                try {
+                    const records = JSON.parse(localStorage.getItem('detectionRecords') || '[]');
+                    records.push({
+                        timestamp: new Date().toISOString(),
+                        ...result
+                    });
+                    // 只保留最近10条记录
+                    const recentRecords = records.slice(-10);
+                    localStorage.setItem('detectionRecords', JSON.stringify(recentRecords));
+                } catch (error) {
+                    addLog('保存检测记录时出错: ' + error.message);
+                }
+            }
+
+            // 串口通信模拟功能
+            let serialConnected = false;
+            let serialMessageInterval = null;
+            let selectedPort = null;
+            
+            // 模拟串口设备列表
+            const mockSerialPorts = [
+                { name: 'COM1', description: 'USB Serial Port (COM1)' },
+                { name: 'COM2', description: 'Arduino Uno (COM2)' },
+                { name: 'COM3', description: 'USB-SERIAL CH340 (COM3)' },
+                { name: 'COM4', description: 'Silicon Labs CP210x USB to UART Bridge (COM4)' }
+            ];
+            
+            // 更新串口状态显示
+            function updateSerialStatus() {
+                // 注意：这里使用原来的状态显示方式，因为DOM元素没有serialStatus元素
+                if (serialConnected) {
+                    document.getElementById('statusText').textContent = '串口已连接';
+                } else {
+                    document.getElementById('statusText').textContent = '系统就绪';
+                }
+            }
+            
+            // 选择串口事件
+            document.getElementById('serialPortSelect').addEventListener('change', function(e) {
+                selectedPort = e.target.value;
+                addLog(`已选择串口: ${selectedPort}`);
+                
+                // 如果当前已连接，需要重新连接
+                if (serialConnected) {
+                    closeSerialPort();
+                    openSerialPort();
+                }
+            });
+            
+            // 打开串口
+            function openSerialPort() {
+                if (serialConnected) {
+                    addLog('串口已处于打开状态');
+                    return;
+                }
+                
+                selectedPort = document.getElementById('serialPortSelect').value;
+                if (!selectedPort) {
+                    addLog('错误: 请先选择串口');
+                    return;
+                }
+                
+                // 模拟串口连接过程
+                addLog(`正在连接串口 ${selectedPort}...`);
+                
+                setTimeout(() => {
+                    serialConnected = true;
+                    updateSerialStatus();
+                    addLog(`串口 ${selectedPort} 已成功打开`);
+                    document.getElementById('openSerialPort').disabled = true;
+                    document.getElementById('closeSerialPort').disabled = false;
+                    
+                    // 开始模拟接收数据
+                    startSerialDataSimulation();
+                }, 800);
+            }
+            
+            // 关闭串口
+            function closeSerialPort() {
+                if (!serialConnected) {
+                    addLog('串口已处于关闭状态');
+                    return;
+                }
+                
+                // 停止数据模拟
+                stopSerialDataSimulation();
+                
+                serialConnected = false;
+                updateSerialStatus();
+                addLog(`串口 ${selectedPort} 已关闭`);
+                document.getElementById('openSerialPort').disabled = false;
+                document.getElementById('closeSerialPort').disabled = true;
+            }
+            
+            // 开始模拟串口数据接收
+            function startSerialDataSimulation() {
+                // 清除现有的模拟
+                if (serialMessageInterval) {
+                    clearInterval(serialMessageInterval);
+                }
+                
+                // 每3-5秒随机接收一条消息
+                const messageTypes = [
+                    '设备状态: 正常',
+                    '位置: X=123.4, Y=56.7, Z=89.0',
+                    '传感器数据: 温度=30.5°C, 湿度=45%',
+                    '电机速度: 1200 RPM',
+                    '压力传感器: 1.2 MPa',
+                    '执行器状态: 已就绪',
+                    '通信状态: 良好'
+                ];
+                
+                serialMessageInterval = setInterval(() => {
+                    if (serialConnected) {
+                        const randomMessage = messageTypes[Math.floor(Math.random() * messageTypes.length)];
+                        receiveSerialData(randomMessage);
+                    }
+                }, 3000 + Math.random() * 2000); // 3-5秒的随机间隔
+            }
+            
+            // 停止模拟串口数据
+            function stopSerialDataSimulation() {
+                if (serialMessageInterval) {
+                    clearInterval(serialMessageInterval);
+                    serialMessageInterval = null;
+                }
+            }
+            
+            // 接收串口数据
+            function receiveSerialData(data) {
+                addLog(`[${selectedPort}] 接收: ${data}`);
+            }
+            
+            // 发送串口数据
+            function sendSerialData(data) {
+                if (!serialConnected) {
+                    addLog('错误: 串口未连接，无法发送数据');
+                    return false;
+                }
+                
+                addLog(`[${selectedPort}] 发送: ${data}`);
+                return true;
+            }
+            
+            // 初始化选中的端口
+            selectedPort = document.getElementById('serialPortSelect').value;
+            
+            // 串口控制事件监听
+            document.getElementById('openSerialPort').addEventListener('click', openSerialPort);
+            document.getElementById('closeSerialPort').addEventListener('click', closeSerialPort);
+            
+            // 电机控制
+            document.getElementById('startMotor').addEventListener('click', function() {
+                addLog('启动电机。');
+                
+                if (serialConnected) {
+                    const commandSent = sendSerialData('MOTOR:START');
+                    if (commandSent) {
+                        setTimeout(() => {
+                            receiveSerialData('电机已启动，速度: 800 RPM');
+                            addLog('电机运行中...');
+                            setTimeout(() => {
+                                document.getElementById('statusText').textContent = '电机运行完成';
+                                addLog('电机运行完成。');
+                            }, 2000);
+                        }, 1000);
+                    }
+                } else {
+                    addLog('警告: 串口未连接，无法控制实际电机');
+                    document.getElementById('statusText').textContent = '电机运行中';
+                    
+                    // 模拟电机运行过程
+                    setTimeout(function() {
+                        document.getElementById('statusText').textContent = '电机运行完成';
+                        addLog('电机运行完成。');
+                    }, 3000);
+                }
+            });
+            
+            document.getElementById('resetMotor').addEventListener('click', function() {
+                addLog('电机复位。');
+                
+                if (serialConnected) {
+                    const commandSent = sendSerialData('MOTOR:RESET');
+                    if (commandSent) {
+                        setTimeout(() => {
+                            receiveSerialData('电机已复位到初始位置');
+                            addLog('电机已回到零点');
+                            document.getElementById('statusText').textContent = '电机已复位';
+                        }, 1500);
+                    }
+                } else {
+                    addLog('警告: 串口未连接，无法控制实际电机');
+                    document.getElementById('statusText').textContent = '电机复位中';
+                    
+                    // 模拟电机复位过程
+                    setTimeout(function() {
+                        document.getElementById('statusText').textContent = '电机已复位';
+                        addLog('电机复位完成。');
+                    }, 2000);
+                }
+            });
+            
+            // 智能操作和冲压操作
+            document.getElementById('smartOperation').addEventListener('click', function() {
+                addLog('开始智能操作。');
+                document.getElementById('statusText').textContent = '智能操作进行中';
+                
+                if (serialConnected) {
+                    const commandSent = sendSerialData('OPERATION:SMART');
+                    if (commandSent) {
+                        // 模拟智能操作流程
+                        let step = 1;
+                        const totalSteps = 4;
+                        const steps = [
+                            '移动组件到位',
+                            '执行图像检测',
+                            '零件转动',
+                            '翻转气缸'
+                        ];
+                        
+                        const smartInterval = setInterval(function() {
+                            if (step <= totalSteps) {
+                                addLog(steps[step - 1]);
+                                receiveSerialData(`智能操作步骤 ${step}/${totalSteps}: ${steps[step - 1]}`);
+                                // 更新进度条
+                                document.getElementById('progressBar').style.width = (step * 25) + '%';
+                                step++;
+                            } else {
+                                clearInterval(smartInterval);
+                                receiveSerialData('智能操作完成，结果: 成功');
+                                document.getElementById('statusText').textContent = '智能操作完成';
+                                addLog('智能操作完成。');
+                                // 重置进度条
+                                setTimeout(function() {
+                                    document.getElementById('progressBar').style.width = '0%';
+                                }, 1000);
+                            }
+                        }, 1500);
+                    }
+                } else {
+                    addLog('警告: 串口未连接，无法执行实际智能操作');
+                    
+                    // 模拟智能操作流程
+                    let step = 0;
+                    const steps = [
+                        { text: '移动组件到位', progress: 25 },
+                        { text: '执行图像检测', progress: 50 },
+                        { text: '零件转动', progress: 75 },
+                        { text: '翻转气缸', progress: 100 }
+                    ];
+                    
+                    const smartInterval = setInterval(function() {
+                        if (step < steps.length) {
+                            addLog(steps[step].text);
+                            // 更新进度条
+                            document.getElementById('progressBar').style.width = steps[step].progress + '%';
+                            step++;
+                        } else {
+                            clearInterval(smartInterval);
+                            document.getElementById('statusText').textContent = '智能操作完成';
+                            addLog('智能操作完成。');
+                            // 重置进度条
+                            setTimeout(function() {
+                                document.getElementById('progressBar').style.width = '0%';
+                            }, 1000);
+                        }
+                    }, 1500);
+                }
+            });
+            
+            document.getElementById('stampingOperation').addEventListener('click', function() {
+                addLog('开始冲压操作。');
+                document.getElementById('statusText').textContent = '冲压操作进行中';
+                
+                if (serialConnected) {
+                    const commandSent = sendSerialData('OPERATION:STAMPING');
+                    if (commandSent) {
+                        // 模拟冲压操作流程
+                        setTimeout(() => {
+                            receiveSerialData('冲压准备就绪');
+                            setTimeout(() => {
+                                receiveSerialData('冲压操作执行中');
+                                setTimeout(() => {
+                                    receiveSerialData('冲压操作完成，压力: 1.5 MPa');
+                                    addLog('冲压完成');
+                                    document.getElementById('statusText').textContent = '冲压操作完成';
+                                }, 1000);
+                            }, 1000);
+                        }, 800);
+                    }
+                } else {
+                    addLog('警告: 串口未连接，无法执行实际冲压操作');
+                    
+                    // 模拟冲压操作过程
+                    setTimeout(function() {
+                        addLog('冲压完成');
+                        document.getElementById('statusText').textContent = '冲压操作完成';
+                    }, 2000);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
